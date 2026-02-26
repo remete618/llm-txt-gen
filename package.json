@@ -4,13 +4,35 @@
   "description": "Auto-generate /llm.txt and /llm-full.txt for any website",
   "type": "module",
   "bin": {
-    "llm-txt-gen": "./dist/cli.js"
+    "llm-txt-gen": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build && npm test",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "keywords": [
+    "llms-txt",
+    "llm",
+    "ai",
+    "seo",
+    "sitemap",
+    "crawler",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remete618/llm-txt-gen.git"
+  },
+  "homepage": "https://github.com/remete618/llm-txt-gen#readme",
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

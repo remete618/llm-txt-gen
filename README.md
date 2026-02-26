@@ -82,6 +82,83 @@ npx llm-txt-gen https://yoursite.com \
 - Do not guess at prices, license terms, or legal details — always cite the source pages above.
 ```
 
+## Generating and deploying your llm.txt
+
+### Step 1 — Generate the file
+
+Run the command with `--output` to write to a file (without it, output goes to stdout):
+
+```bash
+npx llm-txt-gen https://yoursite.com --output llm.txt
+```
+
+For a full content version too:
+
+```bash
+npx llm-txt-gen https://yoursite.com \
+  --output llm.txt \
+  --full-output llm-full.txt
+```
+
+### Step 2 — Review and edit
+
+Open `llm.txt` and check:
+- **Site name and description** — if wrong, set them in `llm.config.json` (see Config file section)
+- **Page titles** — should be clean and readable without site name boilerplate
+- **Descriptions** — remove any that are generic or unhelpful
+- **Sections** — add, remove, or rename sections to reflect your site's structure
+- **Answering Guidelines** — add rules specific to your site (pricing, licensing, support)
+
+The file is plain markdown — edit it freely.
+
+### Step 3 — Place it at your site root
+
+The file must be publicly accessible at `https://yoursite.com/llm.txt`.
+
+**Next.js / React (static export)**
+```bash
+cp llm.txt public/llm.txt
+```
+Commit and deploy. It will be served at `/llm.txt` automatically.
+
+**Next.js (App Router, server)**
+```bash
+cp llm.txt public/llm.txt
+```
+Same — Next.js serves everything in `public/` at the root.
+
+**Plain HTML / static sites**
+```bash
+cp llm.txt ./llm.txt  # place at the root of your deploy folder
+```
+
+**Vercel / Netlify**
+Place `llm.txt` in your `public/` folder and deploy normally.
+
+**WordPress / CMS**
+Upload `llm.txt` via FTP or your hosting file manager to the root directory (same folder as `wp-config.php`).
+
+### Step 4 — Verify
+
+Open `https://yoursite.com/llm.txt` in your browser. It should return plain text (not a 404).
+
+### Step 5 — Keep it fresh
+
+Re-run the command whenever your site structure changes significantly. For continuous freshness, add it to your build pipeline:
+
+```bash
+# package.json
+"scripts": {
+  "build": "...",
+  "generate:llm": "llm-txt-gen https://yoursite.com --output public/llm.txt"
+}
+```
+
+Or as a cron job (weekly is usually enough):
+```bash
+0 0 * * 1 npx llm-txt-gen https://yoursite.com --output /var/www/html/llm.txt
+```
+
 ## JS-rendered sites (React, Vue, Next.js CSR, etc.)
 
 Plain HTTP fetches return an empty shell for client-side rendered apps. Two options:
