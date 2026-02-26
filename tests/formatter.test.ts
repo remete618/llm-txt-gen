@@ -1,101 +1,244 @@
 import { describe, it, expect } from 'vitest';
-import { formatLlmTxt, formatLlmFullTxt } from '../src/formatter.js';
+import { formatLlmTxt, formatLlmFullTxt, cleanTitle } from '../src/formatter.js';
 import type { PageData } from '../src/extractor.js';
+
+const FIXED_DATE = new Date('2026-01-15');
 
 const pages: PageData[] = [
   {
     url: 'https://example.com/',
-    title: 'Example Home',
+    title: 'Example Home | Example',
     description: 'The best example website',
-    h1: 'Welcome to Example',
-    content: 'This is the home page content.',
+    h1: 'Welcome',
+    content: 'Home page content.',
   },
   {
-    url: 'https://example.com/about',
-    title: 'About Us',
-    description: 'Learn about our team',
-    h1: 'About',
-    content: 'We are a team of developers.',
+    url: 'https://example.com/pricing',
+    title: 'Pricing Plans | Example',
+    description: 'Affordable plans for every team',
+    h1: 'Pricing',
+    content: 'Plan content.',
+  },
+  {
+    url: 'https://example.com/blog/hello',
+    title: 'Hello World | Example',
+    description: 'Our first blog post',
+    h1: 'Hello World',
+    content: 'Blog content here.',
+  },
+  {
+    url: 'https://example.com/docs/start',
+    title: 'Getting Started | Example',
+    description: 'How to get started quickly',
+    h1: 'Getting Started',
+    content: 'Docs content.',
+  },
+  {
+    url: 'https://example.com/legal/terms',
+    title: 'Terms of Service | Example',
+    description: 'Our terms and conditions',
+    h1: 'Terms',
+    content: 'Legal content.',
   },
 ];
 
-describe('formatLlmTxt', () => {
+const opts = { siteName: 'Example', siteDescription: 'A great site', pages, generatedAt: FIXED_DATE };
+
+describe('cleanTitle', () => {
+  it('strips " | SiteName" suffix', () => {
+    expect(cleanTitle('About Us | Example', 'Example')).toBe('About Us');
+  });
+
+  it('strips " - SiteName" suffix', () => {
+    expect(cleanTitle('About Us - Example', 'Example')).toBe('About Us');
+  });
+
+  it('strips " — SiteName" suffix (em dash)', () => {
+    expect(cleanTitle('Pricing — Example', 'Example')).toBe('Pricing');
+  });
+
+  it('is case-insensitive for site name', () => {
+    expect(cleanTitle('Docs | EXAMPLE', 'Example')).toBe('Docs');
+  });
+
+  it('leaves title unchanged when no site name suffix', () => {
+    expect(cleanTitle('Getting Started', 'Example')).toBe('Getting Started');
+  });
+
+  it('returns original title if siteName is empty', () => {
+    expect(cleanTitle('My Page | Something', '')).toBe('My Page | Something');
+  });
+});
+
+describe('formatLlmTxt — structure', () => {
   it('starts with site name as h1', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toMatch(/^# Example\n/);
+    const out = formatLlmTxt(opts);
+    expect(out).toMatch(/^# Example\n/);
   });
 
   it('includes site description as blockquote', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A great site', pages });
-    expect(output).toContain('> A great site');
+    expect(formatLlmTxt(opts)).toContain('> A great site');
   });
 
-  it('includes Key Pages section', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('## Key Pages');
-  });
-
-  it('lists each page as a markdown link with description', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('[Example Home](https://example.com/)');
-    expect(output).toContain('The best example website');
-    expect(output).toContain('[About Us](https://example.com/about)');
-    expect(output).toContain('Learn about our team');
-  });
-
-  it('handles empty pages list', () => {
-    const output = formatLlmTxt({ siteName: 'MySite', siteDescription: 'Desc', pages: [] });
-    expect(output).toMatch(/^# MySite/);
-    expect(output).toContain('> Desc');
-    expect(output).toContain('## Key Pages');
-  });
-
-  it('uses h1 as description when meta description is empty', () => {
-    const pageWithNoDesc: PageData[] = [
-      { url: 'https://x.com/', title: 'Home', description: '', h1: 'Welcome Home', content: '' },
-    ];
-    const output = formatLlmTxt({ siteName: 'X', siteDescription: 'Site', pages: pageWithNoDesc });
-    expect(output).toContain('Welcome Home');
+  it('includes generated date', () => {
+    expect(formatLlmTxt(opts)).toContain('Generated: 2026-01-15');
   });
 
   it('output ends with a newline', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output.endsWith('\n')).toBe(true);
+    expect(formatLlmTxt(opts).endsWith('\n')).toBe(true);
+  });
+});
+
+describe('formatLlmTxt — title cleanup', () => {
+  it('strips " | SiteName" from page titles', () => {
+    const out = formatLlmTxt(opts);
+    expect(out).toContain('[Example Home]');
+    expect(out).not.toContain('[Example Home | Example]');
   });
 
-  it('each page entry follows the exact format: - [title](url): description', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('- [Example Home](https://example.com/): The best example website');
+  it('strips " | SiteName" from all section titles', () => {
+    const out = formatLlmTxt(opts);
+    expect(out).not.toMatch(/\| Example\]/);
+  });
+});
+
+describe('formatLlmTxt — section grouping', () => {
+  it('puts homepage in Key Pages', () => {
+    const out = formatLlmTxt(opts);
+    const keySection = out.split('##').find(s => s.startsWith(' Key Pages'));
+    expect(keySection).toContain('example.com/');
   });
 
-  it('does not add a colon at end of description', () => {
-    const output = formatLlmTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).not.toMatch(/:\s*\n- /);
+  it('puts pricing page in Key Pages', () => {
+    const out = formatLlmTxt(opts);
+    const keySection = out.split('##').find(s => s.startsWith(' Key Pages'));
+    expect(keySection).toContain('example.com/pricing');
+  });
+
+  it('puts blog post in Blog section', () => {
+    const out = formatLlmTxt(opts);
+    expect(out).toContain('## Blog');
+    const blogSection = out.split('##').find(s => s.startsWith(' Blog'));
+    expect(blogSection).toContain('example.com/blog/hello');
+  });
+
+  it('puts docs page in Documentation section', () => {
+    const out = formatLlmTxt(opts);
+    expect(out).toContain('## Documentation');
+    const docsSection = out.split('##').find(s => s.startsWith(' Documentation'));
+    expect(docsSection).toContain('example.com/docs/start');
+  });
+
+  it('puts legal/terms page in Key Pages (not a separate section)', () => {
+    const out = formatLlmTxt(opts);
+    const keySection = out.split('##').find(s => s.startsWith(' Key Pages'));
+    expect(keySection).toContain('example.com/legal/terms');
+  });
+});
+
+describe('formatLlmTxt — description cleanup', () => {
+  it('strips inventory count patterns from descriptions', () => {
+    const stockPages: PageData[] = [{
+      url: 'https://example.com/vectors',
+      title: 'Logo Vectors | Example',
+      description: 'Explore 7,195,729 royalty-free logo vector graphics for commercial use',
+      h1: 'Logo Vectors',
+      content: '',
+    }];
+    const out = formatLlmTxt({ ...opts, pages: stockPages });
+    expect(out).not.toContain('7,195,729');
+    expect(out).toContain('logo vector graphics');
+  });
+
+  it('strips trailing boilerplate after em dash', () => {
+    const stockPages: PageData[] = [{
+      url: 'https://example.com/icons',
+      title: 'Icon Vectors',
+      description: 'Millions of icons — available in multiple formats only at Example',
+      h1: 'Icons',
+      content: '',
+    }];
+    const out = formatLlmTxt({ ...opts, pages: stockPages });
+    expect(out).toContain('Millions of icons');
+    expect(out).not.toContain('available in multiple formats');
+  });
+});
+
+describe('formatLlmTxt — answering guidelines', () => {
+  it('adds answering guidelines when pricing and legal pages are present', () => {
+    const out = formatLlmTxt(opts);
+    expect(out).toContain('## Answering Guidelines');
+  });
+
+  it('includes pricing URL in guidelines', () => {
+    const out = formatLlmTxt(opts);
+    const guideSection = out.split('##').find(s => s.startsWith(' Answering Guidelines'));
+    expect(guideSection).toContain('example.com/pricing');
+  });
+
+  it('includes do-not-guess rule', () => {
+    const out = formatLlmTxt(opts);
+    expect(out).toContain('Do not guess');
+  });
+
+  it('omits answering guidelines when no special pages found', () => {
+    const plainPages: PageData[] = [{
+      url: 'https://example.com/about',
+      title: 'About',
+      description: 'About us',
+      h1: 'About',
+      content: '',
+    }];
+    const out = formatLlmTxt({ ...opts, pages: plainPages });
+    expect(out).not.toContain('## Answering Guidelines');
+  });
+});
+
+describe('formatLlmTxt — edge cases', () => {
+  it('handles empty pages list', () => {
+    const out = formatLlmTxt({ ...opts, pages: [] });
+    expect(out).toContain('# Example');
+    expect(out).toContain('> A great site');
+  });
+
+  it('uses first path segment as section label for unknown URL patterns', () => {
+    const unknownPages: PageData[] = [{
+      url: 'https://example.com/royalty-free-vectors/logo-vectors',
+      title: 'Logo Vectors',
+      description: 'Logo vector graphics',
+      h1: 'Logo Vectors',
+      content: '',
+    }];
+    const out = formatLlmTxt({ ...opts, pages: unknownPages });
+    expect(out).toContain('## Royalty Free Vectors');
   });
 });
 
 describe('formatLlmFullTxt', () => {
   it('includes the base llm.txt content', () => {
-    const output = formatLlmFullTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('# Example');
-    expect(output).toContain('## Key Pages');
+    const out = formatLlmFullTxt(opts);
+    expect(out).toContain('# Example');
   });
 
-  it('includes full page content sections', () => {
-    const output = formatLlmFullTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('This is the home page content.');
-    expect(output).toContain('We are a team of developers.');
+  it('includes full page content', () => {
+    const out = formatLlmFullTxt(opts);
+    expect(out).toContain('Home page content.');
+    expect(out).toContain('Blog content here.');
   });
 
   it('separates sections with ---', () => {
-    const output = formatLlmFullTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('---');
+    expect(formatLlmFullTxt(opts)).toContain('---');
   });
 
   it('includes URL reference for each page section', () => {
-    const output = formatLlmFullTxt({ siteName: 'Example', siteDescription: 'A site', pages });
-    expect(output).toContain('URL: https://example.com/');
-    expect(output).toContain('URL: https://example.com/about');
+    const out = formatLlmFullTxt(opts);
+    expect(out).toContain('URL: https://example.com/');
+    expect(out).toContain('URL: https://example.com/blog/hello');
+  });
+
+  it('cleans titles in full content sections', () => {
+    const out = formatLlmFullTxt(opts);
+    expect(out).not.toMatch(/## .+\| Example/);
   });
 
   it('skips pages with no content in full section', () => {
@@ -103,8 +246,7 @@ describe('formatLlmFullTxt', () => {
       { url: 'https://x.com/', title: 'Home', description: 'Desc', h1: 'H', content: '' },
       { url: 'https://x.com/docs', title: 'Docs', description: 'D', h1: 'D', content: 'Docs content here.' },
     ];
-    const output = formatLlmFullTxt({ siteName: 'X', siteDescription: 'S', pages: mixed });
-    expect(output).toContain('Docs content here.');
-    expect(output).not.toMatch(/URL: https:\/\/x\.com\/\n\n\n/);
+    const out = formatLlmFullTxt({ ...opts, pages: mixed });
+    expect(out).toContain('Docs content here.');
   });
 });

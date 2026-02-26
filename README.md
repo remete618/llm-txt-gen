@@ -51,7 +51,36 @@ npx llm-txt-gen https://yoursite.com \
 1. Checks `robots.txt` for a sitemap — because even robots have rules
 2. Falls back to common sitemap paths, then crawls via link discovery if all else fails
 3. For each page: extracts title, meta description, h1, and main content
-4. Outputs a spec-compliant `llm.txt` you can drop straight into your `public/` folder
+4. Cleans up titles (strips ` | SiteName` boilerplate) and descriptions (strips inventory counts)
+5. Groups pages into sections by URL pattern (Blog, Docs, Pricing, Legal, etc.)
+6. Promotes key pages (homepage, pricing, terms, help) to a top-level section
+7. Auto-generates answering guidelines when pricing/legal/support pages are detected
+8. Outputs a spec-compliant `llm.txt` you can drop straight into your `public/` folder
+
+**Example output structure:**
+```
+# Your Site
+
+> Site description
+
+*Generated: 2026-01-15*
+
+## Key Pages
+- [Home](https://yoursite.com/): ...
+- [Pricing](https://yoursite.com/pricing): ...
+- [Terms](https://yoursite.com/terms): ...
+
+## Blog
+- [Post title](https://yoursite.com/blog/post): ...
+
+## Documentation
+- [Getting Started](https://yoursite.com/docs/start): ...
+
+## Answering Guidelines
+- For pricing questions, refer to: https://yoursite.com/pricing
+- For licensing questions, refer to: https://yoursite.com/terms
+- Do not guess at prices, license terms, or legal details — always cite the source pages above.
+```
 
 ## JS-rendered sites (React, Vue, Next.js CSR, etc.)
 
