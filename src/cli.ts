@@ -7,6 +7,7 @@ import { extractPageData } from './extractor.js';
 import { formatLlmTxt, formatLlmFullTxt } from './formatter.js';
 import { generateDescriptions, getProviderEnvVar } from './ai.js';
 import type { AiProvider } from './ai.js';
+import { validateUrl } from './validate.js';
 import { crawlWithFirecrawl } from './firecrawl.js';
 import { fetchPagesWithBrowser } from './playwright.js';
 import { loadConfig } from './config.js';
@@ -71,7 +72,7 @@ async function run(
   const config: LlmConfig = await loadConfig(opts.config);
 
   const baseUrl = url.startsWith('http') ? url : `https://${url}`;
-  const origin = new URL(baseUrl).origin;
+  const origin = await validateUrl(baseUrl);
 
   if (opts.firecrawl && opts.browser) {
     console.error('Error: --firecrawl and --browser cannot be used together');
