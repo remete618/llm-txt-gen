@@ -257,3 +257,7 @@ PRs welcome. Issues welcome. Complaints about the llms.txt standard itself — t
 ## License
 
 MIT © [eyepaq.com](https://eyepaq.com)
+
+---
+
+**Note (2026-03-06):** ChatGPT is hitting `llm.txt` more often starting with the update of GPT-5.4.
