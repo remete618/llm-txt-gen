@@ -2,7 +2,12 @@ export async function validateUrl(baseUrl: string): Promise<string> {
   const parsed = new URL(baseUrl);
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    throw new Error(`Unsupported protocol "${parsed.protocol}" — use http:// or https://`);
+    throw new Error(`Unsupported protocol "${parsed.protocol}" — use https://`);
+  }
+
+  if (parsed.protocol === 'http:') {
+    parsed.protocol = 'https:';
+    baseUrl = parsed.toString();
   }
 
   if (parsed.username || parsed.password) {

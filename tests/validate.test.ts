@@ -28,6 +28,13 @@ describe('validateUrl', () => {
     expect(origin).toBe('https://example.com');
   });
 
+  it('upgrades http:// to https://', async () => {
+    mockFetch.mockResolvedValueOnce(htmlResponse());
+    const origin = await validateUrl('http://example.com');
+    expect(origin).toBe('https://example.com');
+    expect(mockFetch).toHaveBeenCalledWith('https://example.com/', expect.anything());
+  });
+
   it('rejects unsupported protocols', async () => {
     await expect(validateUrl('ftp://example.com')).rejects.toThrow('Unsupported protocol "ftp:"');
   });
